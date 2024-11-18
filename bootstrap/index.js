@@ -7,12 +7,12 @@ console.log("Starting.....")
 var encoder;
 var decoder;
 async function getEncoderModel() {
-    encoder  = await await tf.loadLayersModel('/encoder/model.json');
+    encoder  = await await tf.loadLayersModel('https://github.com/Senthilsk10/Latent-Space-Interpolation/raw/refs/heads/master/bootstrap/encoder/model.json');
     console.log('Sucessfully loaded encoder');
     // return encoder;
   }
 async function getDecoderModel() {
-    decoder  = await await tf.loadLayersModel('/decoder/model.json');
+    decoder  = await await tf.loadLayersModel('https://github.com/Senthilsk10/Latent-Space-Interpolation/raw/refs/heads/master/bootstrap/decoder/model.jsonn');
     console.log('Sucessfully loaded decoder');
 // return decoder;
 }
