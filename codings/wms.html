@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>OpenLayers with MOSDAC WMS</title>
+    <link rel="stylesheet" href="https://openlayers.org/en/v6.9.0/css/ol.css" type="text/css">
+    <script src="https://cdn.rawgit.com/openlayers/openlayers.github.io/master/en/v6.5.0/build/ol.js"></script>
+</head>
+<body>
+<div id="map" style="width: 100%; height: 500px;"></div>
+<script type="text/javascript">
+    const layers = [
+        new ol.layer.Tile({
+            source: new ol.source.OSM(),
+        }),
+        new ol.layer.Image({
+            extent: [6800000, 600000, 9700000, 3500000], // Approximate extent for India in EPSG:3857
+            source: new ol.source.ImageWMS({
+                url: 'https://mosdac.gov.in/live_data/wms/live3RL1BSTD4km/products/Insat3r/3R_IMG/2024/12NOV/3RIMG_12NOV2024_0945_L1B_STD_V01R00.h5',
+                params: {
+                    'LAYERS': 'IMG_TIR1',
+                    'FORMAT': 'image/png',
+                    'TRANSPARENT': true,
+                    'COLORSCALERANGE': '317,930',
+                    'STYLES': 'boxfill/greyscale'
+                },
+                ratio: 1,
+                serverType: 'geoserver',
+            }),
+        }),
+    ];
+
+    const map = new ol.Map({
+        target: 'map',
+        layers: layers,
+        view: new ol.View({
+            center: [8780000, 1970000], // Center point in EPSG:3857 for India
+            zoom: 4,
+            maxZoom: 10
+        }),
+    });
+</script>
+</body>
+</html>

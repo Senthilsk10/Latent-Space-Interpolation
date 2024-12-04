@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WMS with Google Tile System</title>
+  <script src="tilebox.js"></script>
+  <style>
+    #map {
+      width: 100%;
+      height: 100vh;
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <script>
+    // Example: Calculate BBOX for a specific tile at zoom level 3
+    const tileX = 4, tileY = 2, zoom = 3;
+    const bbox = getTileBounds(tileX, tileY, zoom);
+    console.log('BBOX for tile (4, 2) at zoom level 3:', bbox);
+  </script>
+</body>
+</html>

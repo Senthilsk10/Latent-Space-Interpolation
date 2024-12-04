@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Leaflet Video Tile Layer (Caching and Sync Playback)</title>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+    <style>
+      #map {
+        height: 100vh;
+        width: 100%;
+      }
+      #play-button {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        z-index: 1000;
+        background: #007bff;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        cursor: pointer;
+        border-radius: 5px;
+        font-size: 16px;
+      }
+      video {
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="map"></div>
+    <button id="play-button">Play Videos</button>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+              // Cache to store video tiles
+              const videoCache = new Map();
+
+              // Custom Video Grid Layer with Caching and Sync Playback
+              L.VideoGridLayer = L.GridLayer.extend({
+                  createTile: function (coords) {
+                      const tileKey = `${coords.x},${coords.y}`;
+                      let tile = videoCache.get(tileKey);
+
+                      if (!tile) {
+                          // Create a new video tile if not cached
+                          tile = document.createElement('video');
+                          tile.setAttribute('class','video')
+                          const tileSize = this.getTileSize();
+                          tile.width = tileSize.x;
+                          tile.height = tileSize.y;
+
+                          // Set video source and properties
+                          tile.src = this.getTileUrl(coords, 4);
+                          tile.loop = false;
+                          tile.muted = true; // Mute for smoother playback
+                          tile.playsInline = true; // Mobile compatibility
+                          tile.preload = "auto"; // Preload the video
+                          tile.autoplay = false; // Disable autoplay
+
+                          // Cache the video element
+                          videoCache.set(tileKey, tile);
+
+                          // Log for debugging
+                          tile.onloadeddata = () => {
+                              console.log(`Video tile loaded: x=${coords.x}, y=${coords.y}, z=4`);
+                          };
+
+                          tile.onerror = () => {
+                              console.error(`Failed to load video tile: x=${coords.x}, y=${coords.y}, z=4`);
+                          };
+                      }
+
+                      return tile;
+                  },
+
+                  getTileUrl: function (coords, zoom) {
+                      zoom = zoom || 4;
+                      return `http://127.0.0.1:5500/data/${coords.x}/${coords.y}.mp4`;
+                  }
+              });
+
+              // Initialize the map
+              const map = L.map('map', {
+                  zoomSnap: 0,
+                  zoomDelta: 0,
+                  scrollWheelZoom: false,
+                  doubleClickZoom: false,
+                  touchZoom: false,
+                  dragging: true,
+                  zoomControl: false,
+              }).setView([0, 0], 4);
+
+              // Add the video tile layer
+              const videoLayer = new L.VideoGridLayer({
+                  tileSize: 256,
+                  opacity: 1,
+              });
+              videoLayer.addTo(map);
+
+      const videos = document.querySelectorAll('video');
+      const playPauseButton = document.getElementById('play-button');
+
+      // Toggle play/pause
+      let isPlaying = false;
+
+      playPauseButton.addEventListener('click', () => {
+          if (isPlaying) {
+              videos.forEach(video =>
+                             video.pause());
+              playPauseButton.textContent = 'Play All';
+          } else {
+              videos.forEach(video => video.play());
+              playPauseButton.textContent = 'Pause All';
+          }
+          isPlaying = !isPlaying;
+      });
+    </script>
+  </body>
+</html>

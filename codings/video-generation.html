@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tensor to Video (MediaRecorder)</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+</head>
+<body>
+    <h1>Convert Tensor to Video (requestAnimationFrame + MediaRecorder)</h1>
+    <button id="generate-video">Generate Video</button>
+    <canvas id="render-canvas" width="128" height="128" style="border: 1px solid black; display: none;"></canvas>
+    <video id="output-video" controls style="display: none;"></video>
+
+    <script>
+        async function tensorToVideo() {
+            // Generate a fake tensor with random RGB frames for demonstration
+            const numFrames = 30;
+            const height = 128;
+            const width = 128;
+            const fps = 10; // Frames per second
+
+            // Create a tensor of shape [numFrames, height, width, channels]
+            const tensor = tf.randomUniform([numFrames, height, width, 3], 0, 255, 'int32');
+
+            // Prepare a canvas for rendering frames
+            const canvas = document.getElementById('render-canvas');
+            const ctx = canvas.getContext('2d');
+
+            // Set up the MediaRecorder to record the canvas frames as a video
+            const stream = canvas.captureStream(fps); // Create a stream from the canvas
+            const mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+            const recordedChunks = [];
+            mediaRecorder.ondataavailable = (event) => {
+                recordedChunks.push(event.data);
+            };
+            mediaRecorder.onstop = () => {
+                const videoBlob = new Blob(recordedChunks, { type: 'video/webm' });
+                const videoUrl = URL.createObjectURL(videoBlob);
+                const videoElement = document.getElementById('output-video');
+                console.log(videoUrl);
+                videoElement.src = videoUrl;
+                videoElement.style.display = 'block';
+            };
+
+            // Start recording the video
+            mediaRecorder.start();
+
+            // Use requestAnimationFrame to sequentially render the frames
+            let frameIndex = 0;
+            function renderFrame() {
+                if (frameIndex >= numFrames) {
+                    mediaRecorder.stop(); // Stop recording after all frames are rendered
+                    return;
+                }
+
+                // Extract the current frame from the tensor
+                const frameTensor = tensor.slice([frameIndex, 0, 0, 0], [1, height, width, 3]);
+
+                // Render the frame onto the canvas
+                tf.browser.toPixels(frameTensor.squeeze(), canvas)
+                    .then(() => {
+                        frameIndex++;
+                        requestAnimationFrame(renderFrame); // Render the next frame
+                    });
+
+                frameTensor.dispose(); // Free memory for the tensor
+            }
+
+            // Start rendering the frames
+            renderFrame();
+        }
+
+        document.getElementById('generate-video').addEventListener('click', tensorToVideo);
+    </script>
+</body>
+</html>

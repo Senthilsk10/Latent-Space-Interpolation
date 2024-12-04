@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <title>Frame Interpolation</title>
+  </head>
+  <body>
+    <h1>Frame Interpolation with TensorFlow.js</h1>
+    <p>Upload two images to generate the intermediate frame.</p>
+
+    <!-- Image Upload -->
+    <input type="file" id="frame1" accept="image/*" />
+    <input type="file" id="frame2" accept="image/*" />
+    <button onclick="processFrames()">Process Frames</button>
+
+    <!-- Display Uploaded and Processed Images -->
+    <div>
+      <h3>Uploaded Images:</h3>
+      <img id="image1" alt="Frame 1" style="max-width: 200px" />
+      <img id="image2" alt="Frame 2" style="max-width: 200px" />
+    </div>
+    <div>
+      <h3>Interpolated Frame:</h3>
+      <canvas id="outputCanvas" style="border: 1px solid black"></canvas>
+    </div>
+
+    <script>
+      // Load the TensorFlow.js model
+      let model;
+      tf.loadGraphModel(
+        "https://raw.githubusercontent.com/Senthilsk10/Latent-Space-Interpolation/refs/heads/master/sepconv-model/model.json"
+      ).then((loadedModel) => {
+        model = loadedModel;
+        console.log("Model loaded successfully!");
+      });
+
+      // Process frames and generate intermediate frame
+      async function processFrames() {
+        // Get uploaded files
+        const file1 = document.getElementById("frame1").files[0];
+        const file2 = document.getElementById("frame2").files[0];
+
+        if (!file1 || !file2) {
+          alert("Please upload both images!");
+          return;
+        }
+
+        // Display uploaded images
+        const img1 = await loadImage(file1, "image1");
+        const img2 = await loadImage(file2, "image2");
+
+        // Preprocess images
+        const tensor1 = preprocessImage(img1).expandDims(0);
+        const tensor2 = preprocessImage(img2).expandDims(0);
+
+        // Predict interpolated frame
+        //   const inputTensor = tf.concat([tensor1, tensor2], -1); // Combine i0 and i2
+        const interpolatedTensor = model.predict([tensor1, tensor2]); // Add batch dimension
+
+        // Postprocess and display result
+        const interpolatedImage = postprocessImage(
+          interpolatedTensor.squeeze()
+        );
+        displayCanvas(interpolatedImage, "outputCanvas");
+      }
+
+      // Load image and set it in an <img> element
+      async function loadImage(file, imgId) {
+        return new Promise((resolve) => {
+          const img = document.getElementById(imgId);
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            img.src = event.target.result;
+            img.onload = () => resolve(img);
+          };
+          reader.readAsDataURL(file);
+        });
+      }
+
+      // Preprocess the image for the model
+      function preprocessImage(image) {
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+        canvas.width = 256;
+        canvas.height = 256;
+
+        // Resize and normalize the image
+        ctx.drawImage(image, 0, 0, 256, 256);
+        const imgData = ctx.getImageData(0, 0, 256, 256);
+        const data = tf.browser.fromPixels(imgData).div(255.0); // Normalize to [0, 1]
+        return data;
+      }
+
+      // Postprocess the model output
+      function postprocessImage(tensor) {
+        const clippedTensor = tensor.clipByValue(0, 1); // Ensure values are in [0, 1]
+        //   tf.browser.toPixels(clippedTensor).print();
+
+        const canvas = document.getElementById('outputCanvas');
+        return tf.browser.toPixels(clippedTensor,canvas); // Convert to pixel data
+      }
+
+      // Display the interpolated image on a canvas
+      function displayCanvas(pixelData, canvasId) {
+        const canvas = document.getElementById(canvasId);
+        const ctx = canvas.getContext("2d");
+        const imageData = new ImageData(
+          new Uint8ClampedArray(pixelData),
+          256,
+          256
+        );
+        canvas.width = 256;
+        canvas.height = 256;
+        ctx.putImageData(imageData, 0, 0);
+      }
+    </script>
+  </body>
+</html>
